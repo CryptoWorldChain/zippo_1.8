@@ -84,7 +84,7 @@ object DDCInstance extends OLog {
         case oom: java.lang.OutOfMemoryError =>
           log.error("Out of memory Error", oom);
           System.exit(-1)
-        case t:Throwable =>
+        case t: Throwable =>
           log.error("Thread start Error", t);
           System.exit(-1)
       }
@@ -326,5 +326,12 @@ object DDCInstance extends OLog {
       defaultWTC
     }
   }
-
+  def getExecutorServiceOrDefault(poolname: String, defaultpool: String): ExecutorService = {
+    val v = specQDW.get(poolname)
+    if (v != null) {
+      v._3;
+    } else {
+      getExecutorService(defaultpool)
+    }
+  }
 }

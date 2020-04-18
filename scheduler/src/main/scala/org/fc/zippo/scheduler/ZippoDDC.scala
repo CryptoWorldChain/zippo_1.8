@@ -41,7 +41,7 @@ abstract class PMDDC[T <: Message] extends SessionModules[T] with OLog {
 class ZippoDDC extends PMDDC[Message] with IActorDispatcher {
   override def getCmds: Array[String] = Array("SSS");
   @Validate
-  def init():Unit =  {
+  def init(): Unit = {
     DDCInstance.init();
   }
   val running = new AtomicBoolean(true);
@@ -49,7 +49,7 @@ class ZippoDDC extends PMDDC[Message] with IActorDispatcher {
   def destroy() {
     running.set(false);
     DDCInstance.destroy()
-    
+
   }
   /**
    * run in seconds at fix delays
@@ -57,8 +57,8 @@ class ZippoDDC extends PMDDC[Message] with IActorDispatcher {
   def scheduleWithFixedDelaySecond(run: Runnable, initialDelay: Long, period: Long) = {
     DDCInstance.scheduleWithFixedDelaySecond(run, initialDelay, period)
   }
-  def scheduleWithFixedDelay(run: Runnable, initialDelay: Long, period: Long,tu:TimeUnit) = {
-    DDCInstance.scheduleWithFixedDelay(run, initialDelay, period,tu)
+  def scheduleWithFixedDelay(run: Runnable, initialDelay: Long, period: Long, tu: TimeUnit) = {
+    DDCInstance.scheduleWithFixedDelay(run, initialDelay, period, tu)
   }
   def post(pack: FramePacket, handler: CompleteHandler, sm: PBActor[Message]) = {
     DDCInstance.post(pack, handler, sm)
@@ -68,19 +68,19 @@ class ZippoDDC extends PMDDC[Message] with IActorDispatcher {
     DDCInstance.post(pack, runner)
   }
   def executeNow(pack: FramePacket, handler: CompleteHandler, sm: PBActor[Message]): Unit = {
-   DDCInstance.executeNow(pack, handler, sm)
+    DDCInstance.executeNow(pack, handler, sm)
 
   }
   def executeNow(pack: FramePacket, runner: Runnable): Unit = {
-   DDCInstance.executeNow(pack, runner)
+    DDCInstance.executeNow(pack, runner)
   }
 
   def postWithTimeout(pack: FramePacket, handler: CompleteHandler, sm: PBActor[Message], timeoutMS: Long): Unit = {
-   DDCInstance.postWithTimeout(pack, handler, sm, timeoutMS)
+    DDCInstance.postWithTimeout(pack, handler, sm, timeoutMS)
   }
 
   def postWithTimeout(pack: FramePacket, runner: Runnable, timeoutMS: Long, handler: CompleteHandler): Unit = {
-   DDCInstance.postWithTimeout(pack, runner, timeoutMS, handler)
+    DDCInstance.postWithTimeout(pack, runner, timeoutMS, handler)
   }
 
   def executeNowWithTimeout(pack: FramePacket, handler: CompleteHandler, sm: PBActor[Message], timeoutMS: Long): Unit = {
@@ -88,14 +88,17 @@ class ZippoDDC extends PMDDC[Message] with IActorDispatcher {
   }
 
   def executeNowWithTimeout(pack: FramePacket, runner: Runnable, timeoutMS: Long, handler: CompleteHandler): Unit = {
-   DDCInstance.executeNowWithTimeout(pack, runner, timeoutMS, handler)
+    DDCInstance.executeNowWithTimeout(pack, runner, timeoutMS, handler)
   }
 
   def getExecutorService(poolname: String): ExecutorService = {
     DDCInstance.getExecutorService(poolname)
   }
-  def isRunning:Boolean = {
-     running.get;
+  def getExecutorServiceOrDefault(poolname: String, defaultpool: String): ExecutorService = {
+    DDCInstance.getExecutorServiceOrDefault(poolname, defaultpool)
+  }
+  def isRunning: Boolean = {
+    running.get;
   }
 
 }

@@ -27,7 +27,7 @@ public abstract class AsyncPBActor<T extends Message> extends PBActor<T> {
 	long def_timeout = new PropHelper(null).get("tfw.async.timeout", 60000);
 
 	@ActorRequire(name = "zippo.ddc",scope="global")
-	IActorDispatcher dispatcher = new ForkJoinDispatcher();
+	IActorDispatcher dispatcher ;
 
 	public IActorDispatcher getDispatcher() {
 		return dispatcher;

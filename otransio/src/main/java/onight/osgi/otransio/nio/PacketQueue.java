@@ -96,19 +96,21 @@ public class PacketQueue implements Runnable {
 		// }
 	}
 
-	public void offer(PacketTuple pt) {
-		LinkedBlockingQueue<PacketTuple> queuetooffer = getQueue(pt.pack);
-
-		while (!queuetooffer.offer(pt))
-			;
-		// if (polling.get()) {
-		// if (queuetooffer == green_queue) {
-		// tryDirectSendPacket(green_queue, greenPool, "green");
-		// } else if (queuetooffer == pio_queue) {
-		// tryDirectSendPacket(pio_queue, pioPool, "pio");
-		// }
-		// }
-	}
+	// public void offer(PacketTuple pt) {
+	// LinkedBlockingQueue<PacketTuple> queuetooffer = getQueue(pt.pack);
+	//
+	// while (!queuetooffer.offer(pt))
+	// ;
+	// // if (polling.get()) {
+	// // if (queuetooffer == green_queue) {
+	// // tryDirectSendPacket(green_queue, greenPool, "green");
+	// // } else if (queuetooffer == pio_queue) {
+	// // tryDirectSendPacket(pio_queue, pioPool, "pio");
+	// // }
+	// // }
+	//
+	//
+	// }
 
 	public PacketTuple poll(long waitms) throws InterruptedException {
 		PacketTuple task = green_queue.poll();
@@ -136,16 +138,16 @@ public class PacketQueue implements Runnable {
 		if (isStop) {
 			return;
 		}
-//		int cc = 0;
-//		PropHelper props = new PropHelper(null);
-//		while (ckpool.size() < ckpool.getCore() && !isStop
-//				&& cc < props.get("org.zippo.otransio.reconnect.try.times", 10)) {
-//			conn = ckpool.ensureConnection();
-//			if (conn != null && conn.isOpen()) {
-//				ckpool.retobj(conn);
-//			}
-//			cc++;
-//		}
+		// int cc = 0;
+		// PropHelper props = new PropHelper(null);
+		// while (ckpool.size() < ckpool.getCore() && !isStop
+		// && cc < props.get("org.zippo.otransio.reconnect.try.times", 10)) {
+		// conn = ckpool.ensureConnection();
+		// if (conn != null && conn.isOpen()) {
+		// ckpool.retobj(conn);
+		// }
+		// cc++;
+		// }
 		for (int i = 0; i < ckpool.getCore() / 4 && !isStop; i++) {
 			conn = ckpool.borrow();
 			if (conn != null && conn.isOpen()) {
@@ -158,13 +160,23 @@ public class PacketQueue implements Runnable {
 				pioPool.addObject(conn);
 			}
 		}
-		conn = null;
-		int failedwait = 0;
-		while (!isStop) {
+	}
+
+	public void offer(PacketTuple pt) {
+
+		if (pt.pack.getFixHead().getPrio() == '9') {
+			tryDirectSendPacket(green_queue, greenPool, "green");
+		} else if (pt.pack.getFixHead().getPrio() == '8') {
+			tryDirectSendPacket(pio_queue, pioPool, "pio");
+		} else {
+			queue.offer(pt);
+			Connection<?> conn = null;
+			int failedwait = 0;
+			PacketWriter writer = null;
+			PacketTuple fp = null;
 			// do {
 			try {
 				conn = ckpool.ensureConnection();
-				writer = null;
 				CKConnPool retPut_ckpool = ckpool;
 				if (conn != null) {
 					writer = writerPool.borrowWriter(name, conn, retPut_ckpool, this);
@@ -194,23 +206,14 @@ public class PacketQueue implements Runnable {
 					}
 					failedwait = 0;
 				} else {
-					tryDirectSendPacket(green_queue, greenPool, "green");
-					tryDirectSendPacket(pio_queue, pioPool, "pio");
-					failedwait++;
-					if (failedwait > 5) {
-						Thread.sleep(2000);// wait for connection
-						failedwait = 0;
-					}
-					failedGetConnection++;
-					log.debug("TT1-no more connection for " + name + ",failedcc=" + failedGetConnection + ",failedwait="
-							+ failedwait + ",pool=" + ckpool.getActiveObjs().size() + "/" + ckpool.size() + ",conn="
-							+ conn + ",queuesize=[" + green_queue.size() + "," + pio_queue.size() + "," + queue.size()
-							+ "]");
+
+					log.debug("TT1-no more connection for " + name + ",failedwait=" + failedwait + ",pool="
+							+ ckpool.getActiveObjs().size() + "/" + ckpool.size() + ",conn=" + conn + ",queuesize=["
+							+ green_queue.size() + "," + pio_queue.size() + "," + queue.size() + "]");
 				}
 
 			} catch (Throwable t) {
-				failedGetConnection++;
-				log.warn("error in get connection for " + name + ",failedcc=" + failedGetConnection, t);
+				log.warn("error in get connection for " + name, t);
 			} finally {
 				if (writer != null) {
 					writerPool.retobj(writer);
@@ -223,7 +226,7 @@ public class PacketQueue implements Runnable {
 			String queuename) {
 		PacketWriter writer = null;
 		try {
-			Thread.currentThread().setName("tryDirectSendPacket--" + queuename);
+			// Thread.currentThread().setName("tryDirectSendPacket--" + queuename);
 			// log.error("TTT-tryDirectSendPacket:pool=" +
 			// pool.getActiveObjs().size() + "/" + pool.size() + ",queuesize="
 			// + queue.size() + ",queuename=" + queuename + ",@" + name);
@@ -231,7 +234,7 @@ public class PacketQueue implements Runnable {
 			PacketTuple fp = queue.poll();
 			if (fp != null) {
 				Connection conn = pool.borrow();
-				ReusefulLoopPool<Connection>  retPut_ckpool = pool;
+				ReusefulLoopPool<Connection> retPut_ckpool = pool;
 				if (conn == null || !conn.isOpen()) {
 					if (conn != null) {
 						// log.error("TTT-remove not open connection:pool=" +
@@ -248,7 +251,7 @@ public class PacketQueue implements Runnable {
 					if (conn != null && conn.isOpen()) {
 						if (pool.size() >= ckpool.getCore() / 4) {
 							retPut_ckpool = ckpool;
-						}else {
+						} else {
 							retPut_ckpool.getAllObjs().put(conn, conn);
 						}
 					}
@@ -284,7 +287,7 @@ public class PacketQueue implements Runnable {
 		} catch (Throwable e) {
 			log.error("TTT-err in send Packet for queue=" + queuename, e);
 		} finally {
-			Thread.currentThread().setName(name);
+			// Thread.currentThread().setName(name);
 		}
 	}
 

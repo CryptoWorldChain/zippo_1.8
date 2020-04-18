@@ -20,6 +20,7 @@ import onight.tfw.otransio.api.beans.FramePacket;
 public interface IActorDispatcher {
 
 	public ExecutorService getExecutorService(String gcmd);
+	public ExecutorService getExecutorServiceOrDefault(String gcmd,String defaultv);
 
 	public void post(FramePacket pack, CompleteHandler handler, PBActor<Message> sm);
 

@@ -36,7 +36,7 @@ subprojects {
 		dependencies {
 			classpath "onight.osgi:zpp-gradle_1.8:3.4.0"
 			if(project.name!='oapi_1.8'&&project.name!='oapi') {
-				classpath ("org.fc.zippo:org.fc.zippo.oapi:4.0.2")
+				classpath ("org.fc.zippo:org.fc.zippo.oapi:4.2.0")
 			}
 			classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.8'
 		}
@@ -50,7 +50,7 @@ subprojects {
 	dependencies {
 		if(project.name!='oapi_1.8'&&project.name!='oapi') {
 			//			compile project(":oapi")
-			compile ("org.fc.zippo:org.fc.zippo.oapi:4.0.2")
+			compile ("org.fc.zippo:org.fc.zippo.oapi:4.2.0")
 
 		}
 

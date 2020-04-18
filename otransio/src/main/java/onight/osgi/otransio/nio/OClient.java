@@ -55,8 +55,8 @@ public class OClient {
 		transport = TCPNIOTransportBuilder.newInstance().build();
 		transport.setProcessor(filterChainBuilder.build());
 		transport.setClientSocketSoTimeout(params.get("otransio.client.sotimeout", 10));
-		transport.setKernelThreadPool(oimpl.getDispatcher().getExecutorService("otransio.client.kernel"));
-		transport.setWorkerThreadPool(oimpl.getDispatcher().getExecutorService("otransio.client.cworkers"));
+		transport.setKernelThreadPool(oimpl.getDispatcher().getExecutorServiceOrDefault("otransio.client.kernel","otransio"));
+		transport.setWorkerThreadPool(oimpl.getDispatcher().getExecutorServiceOrDefault("otransio.client.cworkers","otransio"));
 		
 		transport.setTcpNoDelay(true);
 		try {

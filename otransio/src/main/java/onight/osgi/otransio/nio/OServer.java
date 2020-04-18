@@ -52,8 +52,8 @@ public class OServer {
 		wtpc.setCorePoolSize(params.get("otrans.worker.core", 10)).setMaxPoolSize(params.get("otrans.worker.max", 100));
 		transport.setWorkerThreadPoolConfig(wtpc);
 		
-		transport.setKernelThreadPool(listener.getDispatcher().getExecutorService("otransio.server.kernel"));
-		transport.setWorkerThreadPool(listener.getDispatcher().getExecutorService("otransio.server.workers"));
+		transport.setKernelThreadPool(listener.getDispatcher().getExecutorServiceOrDefault("otransio.server.kernel","otransio"));
+		transport.setWorkerThreadPool(listener.getDispatcher().getExecutorServiceOrDefault("otransio.server.workers","otransio"));
 
 		
 		transport.setIOStrategy(LeaderFollowerNIOStrategy.getInstance());

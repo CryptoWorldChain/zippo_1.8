@@ -12,14 +12,15 @@ import onight.tfw.ntrans.api.PBActor;
 import onight.tfw.otransio.api.beans.FramePacket;
 import onight.tfw.outils.conf.PropHelper;
 
+@Deprecated
 public class ForkJoinDispatcher implements IActorDispatcher {
 
 	static PropHelper prop = new PropHelper(null);
 
 	static ForkJoinPool defaultPool = new ForkJoinPool(
-			prop.get("org.zippo.threadpool.exec.size", Runtime.getRuntime().availableProcessors() * 4));
+			prop.get("org.zippo.threadpool.exec.size", 1));
 	static ScheduledThreadPoolExecutor sch = new ScheduledThreadPoolExecutor(
-			prop.get("org.zippo.threadpool.scheduler.size", Runtime.getRuntime().availableProcessors()));
+			prop.get("org.zippo.threadpool.scheduler.size", 1));
 
 	@Override
 	public void scheduleWithFixedDelaySecond(Runnable run, long initialDelay, long period) {
@@ -129,6 +130,11 @@ public class ForkJoinDispatcher implements IActorDispatcher {
 	@Override
 	public boolean isRunning() {
 		return !(sch.isShutdown()||sch.isTerminating());
+	}
+
+	@Override
+	public ExecutorService getExecutorServiceOrDefault(String gcmd, String defaultv) {
+		return defaultPool;
 	}
 
 }
