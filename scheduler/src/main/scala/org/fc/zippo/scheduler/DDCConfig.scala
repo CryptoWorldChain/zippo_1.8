@@ -21,6 +21,11 @@ object DDCConfig {
   val SPEC_DISPATCHERS = prop.get(PREFIX + "spec.dispatchers", "transio[1->100],dob[1->100]");
   val SPEC_ACTOR_PREDEF = prop.get(PREFIX + "spec.actor.predef", "TRANSIO->transio,JINDOB->transio");
 
+  val THREAD_POOL = prop.get(PREFIX + "thread.pool", "forkjoin").toUpperCase()
+
+  val RUNTIME_MAX_THREAD_COUNT = prop.get(PREFIX + "runtime.max.thread.count", -1)
+  val TRY_POOL_THREAD_MAX_COUNT = prop.get(PREFIX + "try.pool.thread.max.count", 1000)
+
   def parseInt(str: String, default: Int = 0): Int = {
     try {
       str.toInt

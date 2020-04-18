@@ -60,7 +60,7 @@ public class OTransioStarter implements Serializable, ActorService, IActor {
         }
         else{
             log.debug("OTransioStarter is NSocketImpl");
-            socket = new NSocketImpl();
+//            socket = new NSocketImpl();
 //            socket = new NoneSocketImpl();
         }
         sender = socket.packetSender();

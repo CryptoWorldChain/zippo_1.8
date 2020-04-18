@@ -30,6 +30,15 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.BlockingQueue
+import java.util.concurrent.RejectedExecutionHandler
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.ForkJoinWorkerThread
+import java.util.concurrent.ForkJoinPool.ForkJoinWorkerThreadFactory
+import java.lang.Thread.UncaughtExceptionHandler
+import onight.tfw.outils.pool.ReusefulLoopPool
+import java.util.concurrent.ThreadFactory
 
 object DDCInstance extends OLog {
   val prop = new PropHelper(null);
@@ -37,27 +46,155 @@ object DDCInstance extends OLog {
   val daemonsWTC = new ScheduledThreadPoolExecutor(DDCConfig.DAEMON_WORKER_THREAD_COUNT);
 
   val timeoutSCH = new ScheduledThreadPoolExecutor(DDCConfig.TIMEOUT_CHECK_THREAD_COUNT);
-  val defaultWTC = new ForkJoinPool(DDCConfig.DEFAULT_WORKER_THREAD_COUNT);
   val defaultQ = new LinkedBlockingDeque[Worker]
-  val specQDW = new ConcurrentHashMap[String, (LinkedBlockingDeque[Worker], Iterable[DDCDispatcher], ForkJoinPool)];
+  val specQDW = new ConcurrentHashMap[String, (LinkedBlockingDeque[Worker], Iterable[DDCDispatcher], ExecutorService)];
   val specQ = new ConcurrentHashMap[String, (String, LinkedBlockingDeque[Worker])];
 
   val running = new AtomicBoolean(true);
+
+  class WrapperThread(pool: ReusefulLoopPool[Thread]) extends Thread {
+    override def run() {
+
+      try {
+        super.run();
+      } finally {
+        Thread.currentThread().setName("BWT-POOL")
+        if (pool.size() < DDCConfig.RUNTIME_MAX_THREAD_COUNT) {
+          pool.retobj(this);
+        }
+      }
+    }
+  }
+  class ExitRejectedExecutionHandler extends RejectedExecutionHandler {
+    def rejectedExecution(r: Runnable, executor: ThreadPoolExecutor) {
+      log.error("rejectedExecution in create thread:" + executor);
+      System.exit(-1)
+    }
+  }
+  class FailToExitForkJoinWorkerThread(pool: ForkJoinPool, runtime_fjthread_pool: ReusefulLoopPool[FailToExitForkJoinWorkerThread], putTOPool: Boolean) extends ForkJoinWorkerThread(pool) {
+    override def onStart() {
+      Thread.currentThread().setName("F2E-JoinWorker-" + putTOPool)
+      super.onStart();
+    }
+
+    override def start() {
+      try {
+        super.start()
+      } catch {
+        case oom: java.lang.OutOfMemoryError =>
+          log.error("Out of memory Error", oom);
+          System.exit(-1)
+        case t:Throwable =>
+          log.error("Thread start Error", t);
+          System.exit(-1)
+      }
+
+    }
+    override def onTermination(exception: Throwable) {
+      if (putTOPool) {
+        runtime_fjthread_pool.retobj(this)
+      }
+      Thread.currentThread().setName("F2E-JoinWorker-" + putTOPool + ".end")
+      super.onTermination(exception);
+    }
+  }
+  val runtime_fjthread_pool = new ReusefulLoopPool[FailToExitForkJoinWorkerThread]();
+  class FailToExistForkJoinWorkerThreadFactory(totalThreadSize: Int) extends ForkJoinWorkerThreadFactory {
+    def newThread(pool: ForkJoinPool): ForkJoinWorkerThread = {
+      try {
+        if (totalThreadSize <= 0) {
+          new FailToExitForkJoinWorkerThread(pool, null, false);
+        } else {
+          var t = runtime_fjthread_pool.borrow();
+          var cc = 0;
+          while (t == null && cc < DDCConfig.TRY_POOL_THREAD_MAX_COUNT) {
+            t = runtime_fjthread_pool.borrow();
+            cc = cc + 1;
+          }
+          if (t == null) {
+            new FailToExitForkJoinWorkerThread(pool, runtime_fjthread_pool, runtime_fjthread_pool.size() < totalThreadSize);
+          } else {
+            t
+          }
+        }
+      } catch {
+        case t: Throwable =>
+          log.error("error in create fork join thread:", t);
+          System.exit(-1)
+          null
+      } finally {
+      }
+    }
+  }
+
+  val runtime_thread_pool = new ReusefulLoopPool[Thread]();
+
+  val factory = new ThreadFactory {
+    def newThread(r: Runnable): Thread = {
+      var t = runtime_thread_pool.borrow();
+      var cc = 0
+      while (t == null && cc < DDCConfig.TRY_POOL_THREAD_MAX_COUNT) {
+        t = runtime_thread_pool.borrow();
+        cc = cc + 1;
+      }
+      if (t != null) {
+        t
+      } else {
+        try {
+          new Thread()
+        } catch {
+          case t: Throwable =>
+            log.error("error in create thread:", t);
+            System.exit(-1)
+            null
+        }
+      }
+    }
+  }
+
+  val defaultWTC: ExecutorService = if ("FIX".equalsIgnoreCase(DDCConfig.THREAD_POOL)) {
+    for (i <- 1 to DDCConfig.DEFAULT_WORKER_THREAD_COUNT if runtime_thread_pool.size() < DDCConfig.RUNTIME_MAX_THREAD_COUNT) {
+      runtime_thread_pool.addObject(new WrapperThread(runtime_thread_pool))
+    }
+    new ThreadPoolExecutor(
+      Math.max(1, Runtime.getRuntime.availableProcessors() / 2),
+      DDCConfig.DEFAULT_WORKER_THREAD_COUNT, 60, TimeUnit.SECONDS, new LinkedBlockingQueue[Runnable](DDCConfig.DEFAULT_WORKER_THREAD_COUNT * 2), factory, new ExitRejectedExecutionHandler());
+  } else {
+    new ForkJoinPool(DDCConfig.DEFAULT_WORKER_THREAD_COUNT, new FailToExistForkJoinWorkerThreadFactory(DDCConfig.RUNTIME_MAX_THREAD_COUNT), null, false);
+  }
+
   @Validate
   def init(): Unit = {
     running.set(true)
 
     log.info("DDC-Startup: defaultWTC=" + DDCConfig.DEFAULT_WORKER_THREAD_COUNT + ",daemonsWTC=" + DDCConfig.DAEMON_WORKER_THREAD_COUNT);
+
+    //    val runtime_thread_pool = new ReusefulLoopPool[Thread]();
+
     for (i <- 1 to DDCConfig.DEFAULT_DISPATCHER_COUNT) {
       new Thread(new DDCDispatcher("default(" + i + ")", defaultQ, defaultWTC)).start()
     }
+
     //init specify dispatcher -- thread pools
     DDCConfig.specDispatchers().map { x =>
       val dcname = x._1
       val ddc = x._2;
       val wc = x._3;
       val newQ = new LinkedBlockingDeque[Worker]
-      val newWTC = new ForkJoinPool(wc);
+      val newWTC = DDCConfig.THREAD_POOL match {
+        case "FIX" =>
+          log.info("init fix thread pool");
+          for (i <- 1 to wc if runtime_thread_pool.size() < DDCConfig.RUNTIME_MAX_THREAD_COUNT) {
+            runtime_thread_pool.addObject(new WrapperThread(runtime_thread_pool))
+          }
+
+          new ThreadPoolExecutor(
+            Math.max(1, Runtime.getRuntime.availableProcessors() / 2),
+            wc, 60, TimeUnit.SECONDS, new LinkedBlockingQueue[Runnable](wc * 2), factory, new ExitRejectedExecutionHandler())
+        case _ =>
+          new ForkJoinPool(wc, new FailToExistForkJoinWorkerThreadFactory(DDCConfig.RUNTIME_MAX_THREAD_COUNT), null, false);
+      }
+
       val incr = new AtomicInteger(0);
       val newDP = Array.fill(ddc)(0).map { x => new DDCDispatcher(dcname + "(" + incr.incrementAndGet() + ")", newQ, newWTC); }
       newDP.map { f => new Thread(f).start() }
