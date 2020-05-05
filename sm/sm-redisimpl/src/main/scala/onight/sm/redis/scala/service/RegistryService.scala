@@ -30,9 +30,16 @@ import onight.tfw.outils.conf.PropHelper
 import onight.sm.Ssm.PBSSORet
 import scala.collection.JavaConversions._
 import java.security.SecureRandom
+import org.apache.felix.ipojo.annotations.Instantiate
+import org.apache.felix.ipojo.annotations.Provides
+import onight.tfw.ntrans.api.ActorService
+import onight.tfw.proxy.IActor
+import onight.tfw.otransio.api.session.CMDService
 
 @NActorProvider
-object RegistryActor extends SessionModules[PBSSO] {
+@Instantiate
+@Provides(specifications = Array(classOf[ActorService], classOf[IActor], classOf[CMDService]))
+class RegistryActor extends SessionModules[PBSSO] {
   override def service = RegistryService
 }
 
@@ -50,12 +57,12 @@ object RegistryService extends OLog with PBUtils with LService[PBSSO] {
   def resultfunc(pack: FramePacket, pbo: PBSSO, handler: CompleteHandler, rowcount: Int)(implicit errorCode: String = "0002", errorMessage: String = "Unknow Error"): Unit = {
     val ret = PBSSORet.newBuilder();
 
-    if (rowcount != null&&rowcount>0) {
+    if (rowcount>0) {
       val loginId = pbo.getLoginId; //+Math.abs((Math.random()*100)%100).asInstanceOf[Int];
-        ret.setBizcode("0000").setRetcode(RetCode.SUCCESS) setLoginId (loginId)
+        ret.setRetcode(RetCode.SUCCESS) setLoginId (loginId)
     } else {
       log.debug("result error:" + errorMessage)
-      ret.setDesc(errorMessage).setBizcode(errorCode);
+      ret.setDesc(errorMessage).setRetcode(RetCode.FAILED)
       pack.getExtHead().remove(ExtHeader.SESSIONID)
     }
     handler.onFinished(PacketHelper.toPBReturn(pack, ret.build()));
@@ -66,24 +73,24 @@ object RegistryService extends OLog with PBUtils with LService[PBSSO] {
 
     if (pbo == null) {
       val ret = PBSSORet.newBuilder();
-      ret.setDesc("Packet_Error").setBizcode("0003") setRetcode (RetCode.FAILED);
+      ret.setDesc("Packet_Error").setRetcode (RetCode.FAILED);
       handler.onFinished(PacketHelper.toPBReturn(pack, ret.build()));
     } else {
       val row = VMDaos.dbCache.getIfPresent(pbo.getLoginId);
       if (row != null) {
         resultfunc(pack, pbo, handler, -1)("0003", "InsertError,LoginIdExist!")
       } else {
-        val example = new KOLoginUser( StringUtils.trimToNull(pbo.getUserName),
+        val example = new KOLoginUser( StringUtils.trimToNull(pbo.getUserId),
           StringUtils.trimToNull(pbo.getEmail),
           StringUtils.trimToNull(pbo.getMobile),
           StringUtils.trimToNull(pbo.getThirdLoginid1),
           StringUtils.trimToNull(pbo.getThirdLoginid2),
-          StringUtils.trimToNull(pbo.getUserName),
+          StringUtils.trimToNull(pbo.getNickname),
           StringUtils.trimToNull(pbo.getPassword),
-          StringUtils.trimToNull(pbo.getTradeNo),
-          StringUtils.trimToNull("bc_"+SMIDHelper.nextSMID(pbo.getUserName)),
+          StringUtils.trimToNull("1"),
+          StringUtils.trimToNull("bc_"+SMIDHelper.nextSMID(pbo.getUserId)),
           StringUtils.trimToNull("bubipkipkipki"),
-          StringUtils.trimToNull(pbo.getMetadata),
+          StringUtils.trimToNull("2"),
           StringUtils.trimToNull(pbo.getPassword),
           Some(1));
         

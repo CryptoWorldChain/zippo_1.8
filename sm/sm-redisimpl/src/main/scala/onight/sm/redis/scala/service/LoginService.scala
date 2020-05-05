@@ -1,15 +1,22 @@
 package onight.sm.redis.scala.service
 
 import scala.concurrent.ExecutionContext.Implicits.global
+
 import org.apache.commons.lang3.StringUtils
+import org.apache.felix.ipojo.annotations.Provides
+import org.apache.felix.ipojo.configuration.Instance
+
 import com.github.mauricio.async.db.RowData
+
 import lombok.extern.slf4j.Slf4j
 import onight.async.mysql.commons.Range
 import onight.oapi.scala.traits.OLog
 import onight.osgi.annotation.NActorProvider
+import onight.sm.Ssm.PBCommand
 import onight.sm.Ssm.PBSSO
 import onight.sm.Ssm.PBSSORet
 import onight.sm.Ssm.RetCode
+import onight.sm.redis.entity.LoginResIDSession
 import onight.sm.redis.scala.LService
 import onight.sm.redis.scala.PBUtils
 import onight.sm.redis.scala.SMIDHelper
@@ -20,18 +27,17 @@ import onight.sm.redis.scala.persist.MysqlDAOs.KOLoginUser
 import onight.sm.redis.scala.persist.VMDaos
 import onight.tfw.async.CompleteHandler
 import onight.tfw.otransio.api.PacketHelper
-import onight.tfw.otransio.api.beans.FramePacket
-import onight.sm.redis.scala.persist.LoginIDRedisLoCache
-import onight.sm.redis.entity.LoginResIDSession
-import onight.tfw.otransio.api.PackHeader
 import onight.tfw.otransio.api.beans.ExtHeader
-import onight.sm.Ssm.PBCommand
-import onight.tfw.outils.conf.PropHelper
-import onight.sm.Ssm.PBSSORet
-import scala.collection.JavaConversions._
+import onight.tfw.otransio.api.beans.FramePacket
+import onight.tfw.ntrans.api.ActorService
+import onight.tfw.proxy.IActor
+import onight.tfw.otransio.api.session.CMDService
+import org.apache.felix.ipojo.annotations.Instantiate
 
 @NActorProvider
-object LoginActor extends SessionModules[PBSSO] {
+@Instantiate
+@Provides(specifications = Array(classOf[ActorService], classOf[IActor], classOf[CMDService]))
+class LoginActor extends SessionModules[PBSSO] {
   override def service = LoginService
 }
 
@@ -58,18 +64,18 @@ object LoginService extends OLog with PBUtils with LService[PBSSO] {
       if (StringUtils.equals(row("PASSWORD").asInstanceOf[String], pbo.getPassword)) {
         PBRowDataHelper.copyFields(ret, row);
         val smid = SMIDHelper.nextSMID(loginId + "/" + pbo.getResId)
-        ret.setBizcode("0000").setRetcode(RetCode.SUCCESS) setLoginId (loginId) setSmid (smid)
+        ret.setRetcode(RetCode.SUCCESS).setLoginId (loginId).setSmid (smid)
         val session = LoginResIDSession(smid, pbo.getUserId, loginId, pbo.getPassword, pbo.getResId, null);
         SessionManager.watchSMID(session)
         pack.putHeader(ExtHeader.SESSIONID, smid);
       } else {
-        ret.setDesc("Password error").setBizcode("0002");
+        ret.setDesc("Password error")
         pack.getExtHead().remove(ExtHeader.SESSIONID)
 
       }
     } else {
       log.debug("result error:" + errorMessage)
-      ret.setDesc(errorMessage).setBizcode(errorCode);
+      ret.setDesc(errorMessage).setRetcode(RetCode.FAILED)
       pack.getExtHead().remove(ExtHeader.SESSIONID)
 
     }
@@ -81,7 +87,7 @@ object LoginService extends OLog with PBUtils with LService[PBSSO] {
 
     if (pbo == null) {
       val ret = PBSSORet.newBuilder();
-      ret.setDesc("Packet_Error").setBizcode("0003") setRetcode (RetCode.FAILED);
+      ret.setDesc("Packet_Error").setRetcode (RetCode.FAILED);
       handler.onFinished(PacketHelper.toPBReturn(pack, ret.build()));
     } else {
       val row = VMDaos.dbCache.getIfPresent(pbo.getLoginId);

@@ -2,6 +2,7 @@ package onight.sm.redis.scala.service
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.apache.commons.lang3.StringUtils
+
 import com.github.mauricio.async.db.RowData
 import lombok.extern.slf4j.Slf4j
 import onight.async.mysql.commons.Range
@@ -28,9 +29,19 @@ import onight.sm.redis.entity.LoginResIDSession
 import onight.tfw.otransio.api.PackHeader
 import onight.tfw.otransio.api.beans.ExtHeader
 import onight.sm.Ssm.PBCommand
+import org.apache.felix.ipojo.annotations.Instantiate
+import org.apache.felix.ipojo.annotations.Provides
+
+import org.apache.felix.ipojo.annotations.Provides
+import onight.tfw.ntrans.api.ActorService
+import onight.tfw.proxy.IActor
+import onight.tfw.otransio.api.session.CMDService
+import org.apache.felix.ipojo.configuration.Instance
 
 @NActorProvider
-object JdbcLoginActor extends SessionModules[PBSSO] {
+@Instantiate
+@Provides(specifications = Array(classOf[ActorService], classOf[IActor], classOf[CMDService]))
+class JdbcLoginActor extends SessionModules[PBSSO] {
   override def service = JdbcLoginService
 }
 
@@ -61,43 +72,41 @@ object JdbcLoginService extends OLog with PBUtils with LService[PBSSO] {
       //        log.debug("db.row=" + row + ",gua size=" + VMDaos.guCache.size());
       if (!retfields.contains("LOGIN_ID")) {
         log.debug("result error:LOGINID_Not_Found:" + retfields)
-        ret.setDesc("LOGINID_Not_Found").setBizcode("0003");
+        ret.setDesc("LOGINID_Not_Found").setRetcode(RetCode.FAILED)
         pack.getExtHead().remove(ExtHeader.SESSIONID)
       } else {
         val loginId = retfields.get("LOGIN_ID").get.asInstanceOf[String]
         ret.setRetcode(RetCode.FAILED)
         if (StringUtils.equals(retfields.get("PASSWORD").get.asInstanceOf[String], pbo.getPassword)) {
-          val smid = SMIDHelper.nextSMID(loginId + "/" + pbo.getResId)
+          
           val remainmap = PBRowDataHelper.copyMFields(ret, retfields);
           remainmap.map(kv => {
             if (!StringUtils.equalsIgnoreCase(kv._1, "PASSWORD") &&
               !StringUtils.equalsIgnoreCase(kv._1, "TRADE_PASSWORD")) {
-              ret.addUnknowsKey(kv._1)
-              ret.addUnknowsValue(String.valueOf(kv._2))
+              ret.putKvs(kv._1,kv._2.toString())
             }
           })
-          ret.setBizcode("0000").setRetcode(RetCode.SUCCESS) setLoginId (loginId) setSmid (smid)
+          ret.setRetcode(RetCode.SUCCESS).setLoginId (loginId)
+          val smid = SMIDHelper.nextSMID(ret.getUserId + "/" + pbo.getResId)
+          ret.setSmid (smid)
           //          ret.setDesc(
           //            remainmap.foldLeft("")((a, b) =>
           //              if (StringUtils.equalsIgnoreCase(b._1, "PASSWORD"))
           //                a + b._1 + "=" + "******" + ";"
           //              else
           //                a + b._1 + "=" + b._2 + ";"))
-          val session = LoginResIDSession(smid, pbo.getUserId, loginId, pbo.getPassword, pbo.getResId, null);
-          if (pbo.getSession != null && pbo.getSession.getMaxInactiveInterval > 0) {
-            session.setMaxInactiveInterval(pbo.getSession.getMaxInactiveInterval)
-          }
+          val session = LoginResIDSession(smid, ret.getUserId, loginId, pbo.getPassword, pbo.getResId, null);
 
           SessionManager.watchSMID(session)
           pack.putHeader(ExtHeader.SESSIONID, smid);
         } else {
-          ret.setDesc("Password error").setBizcode("0002");
+          ret.setDesc("Password error").setRetcode(RetCode.FAILED);
           pack.getExtHead().remove(ExtHeader.SESSIONID)
         }
       }
     } else {
       log.debug("result error:" + errorMessage)
-      ret.setDesc(errorMessage).setBizcode(errorCode);
+      ret.setDesc(errorMessage).setRetcode(RetCode.FAILED);
       pack.getExtHead().remove(ExtHeader.SESSIONID)
 
     }
@@ -108,14 +117,14 @@ object JdbcLoginService extends OLog with PBUtils with LService[PBSSO] {
     //    log.debug("guava==" + VMDaos.guCache.getIfPresent(pbo.getLogid()));
     if (pbo == null) {
       val ret = PBSSORet.newBuilder();
-      ret.setDesc("Packet_Error").setBizcode("0003") setRetcode (RetCode.FAILED);
+      ret.setDesc("Packet_Error").setRetcode (RetCode.FAILED);
       handler.onFinished(PacketHelper.toPBReturn(pack, ret.build()));
     } else {
       val loginType = JDBCDaos.getLoginType(pbo);
       if (loginType == null) {
         val ret = PBSSORet.newBuilder();
 
-        ret.setDesc("Packet_Error").setBizcode("0003") setRetcode (RetCode.FAILED);
+        ret.setDesc("Packet_Error"). setRetcode (RetCode.FAILED);
         handler.onFinished(PacketHelper.toPBReturn(pack, ret.build()));
       } else {
         val cachepwd = VMDaos.pwdCache.getIfPresent(loginType._2);

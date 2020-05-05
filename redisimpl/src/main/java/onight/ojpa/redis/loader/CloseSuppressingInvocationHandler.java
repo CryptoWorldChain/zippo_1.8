@@ -13,7 +13,7 @@ public class CloseSuppressingInvocationHandler implements InvocationHandler {
 	private static final String EQUALS = "equals";
 
 	private final RedisConnection target;
-
+ 
 	public CloseSuppressingInvocationHandler(RedisConnection target) {
 		this.target = target;
 	}

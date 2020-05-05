@@ -13,15 +13,15 @@ class DBPool()(implicit val ctx: BundleContext=null) {
 
   val pconfig: PropHelper = new PropHelper(ctx);
 
-  val dbUsername = pconfig.get("tcp-async.db.username", "root")
-  val dbPassword = pconfig.get("tcp-async.db.password", "000000")
-  val dbPort = pconfig.get("tcp-async.db.port", 3306)
-  val dbHost = pconfig.get("tcp-async.db.host", "localhost")
+  val dbUsername = pconfig.get("sm.jdbc.usr", "root")
+  val dbPassword = pconfig.get("sm.jdbc.pwd", "000000")
+  val dbPort = pconfig.get("sm.jdbc.port", 3306)
+  val dbHost = pconfig.get("sm.jdbc.host", "localhost")
 
-  val dbName = pconfig.get("tcp-async.db.name", "TFG")
-  val dbPoolMaxObjects = pconfig.get("tcp-async.db.pool.maxObjects", 10)
-  val dbPoolMaxIdle = pconfig.get("tcp-async.db.pool.maxIdle", 1000)
-  val dbPoolMaxQueueSize = pconfig.get("tcp-async.db.pool.maxQueueSize", 10000)
+  val dbName = pconfig.get("sm.jdbc.name", "TFG")
+  val dbPoolMaxObjects = pconfig.get("sm.jdbc.maxsize", 10)
+  val dbPoolMaxIdle = pconfig.get("sm.jdbc.maxIdle", 1000)
+  val dbPoolMaxQueueSize = pconfig.get("sm.jdbc.maxQueueSize", 10000)
 
   val configuration = new Configuration(username = dbUsername,
     port = dbPort,

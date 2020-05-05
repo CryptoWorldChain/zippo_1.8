@@ -18,8 +18,16 @@ import onight.tfw.otransio.api.beans.ExtHeader
 import onight.tfw.otransio.api.beans.FramePacket
 import onight.sm.Ssm.PBCommand
 
+import org.apache.felix.ipojo.annotations.Provides
+import onight.tfw.ntrans.api.ActorService
+import onight.tfw.proxy.IActor
+import onight.tfw.otransio.api.session.CMDService
+import org.apache.felix.ipojo.annotations.Instantiate
+
 @NActorProvider
-object ValidateActor extends SessionModules[PBSSO] {
+@Instantiate
+@Provides(specifications = Array(classOf[ActorService], classOf[IActor], classOf[CMDService]))
+class ValidateActor extends SessionModules[PBSSO] {
   override def service = ValidateService
 }
 
@@ -32,15 +40,15 @@ object ValidateService extends OLog with PBUtils with LService[PBSSO] {
     // ！！检查用户是否已经登录
     val ret = PBSSORet.newBuilder();
     if (pbo == null) {
-      ret.setDesc("Packet_Error").setBizcode("0003") setRetcode (RetCode.FAILED);
+      ret.setRetcode (RetCode.FAILED);
     } else {
       val session = SessionManager.checkAndUpdateSession(pbo.getSmid)
       if (session._1 != null) {
-        ret.setBizcode("0000").setRetcode(RetCode.SUCCESS) setLoginId (session._1.getLoginId());
+        ret.setRetcode(RetCode.SUCCESS) setLoginId (session._1.getLoginId());
         pack.putHeader(ExtHeader.SESSIONID, pbo.getSmid);
       } else {
         //      log.debug("result error: session not found")
-        ret.setDesc(session._2).setBizcode("0001").setLoginId(pbo.getLoginId) setRetcode (RetCode.FAILED);
+        ret.setDesc(session._2).setLoginId(pbo.getLoginId) setRetcode (RetCode.FAILED);
         pack.getExtHead().remove(ExtHeader.SESSIONID)
       }
     }

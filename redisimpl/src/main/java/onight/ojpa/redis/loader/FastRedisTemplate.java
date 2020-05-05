@@ -20,7 +20,7 @@ public class FastRedisTemplate<K, V> extends RedisTemplate<K, V> {
 	HashMap<Class, Class<?>[]> cachedFaced = new HashMap<Class, Class<?>[]>();
 
 	public FastRedisTemplate() {
-		super();
+		super(); 
 		// TODO Auto-generated constructor stub
 	}
 

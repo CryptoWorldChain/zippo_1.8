@@ -21,6 +21,8 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.core.RedisCallback;
 
+import com.google.protobuf.Message;
+
 @Slf4j
 public class DaoRedisImpl extends NoneDomainDao {
 
@@ -59,7 +61,9 @@ public class DaoRedisImpl extends NoneDomainDao {
 
 	}
 
-	static byte[] EXIST_FIELD = "__".getBytes();
+	static byte[] EXIST_FIELD = "#_".getBytes();
+	static byte[] EXT_TYPE = "#t".getBytes();
+	static byte[] EXT_OBJ = "#o".getBytes();
 	static byte[] EXIST_VALUE = StringType.toTBytes(1);
 
 	protected KV kv(Object entity) {
@@ -72,8 +76,11 @@ public class DaoRedisImpl extends NoneDomainDao {
 			// map.put(entry.getKey().getBytes(),
 			// StringType.toTBytes(entry.getValue()));
 			// }
+		} else if (entity instanceof Message) {
+			map.put(EXT_TYPE, EXIST_VALUE);
+			map.put(EXT_OBJ, ((Message) entity).toByteArray());
 		} else {
-			map.put(new byte[] { 0x01 }, StringType.toTBytes(entity));
+			map.put(EXT_OBJ, StringType.toTBytes(entity));
 		}
 		return new KV(localKey(entity).getBytes(), map);
 	}
@@ -151,17 +158,21 @@ public class DaoRedisImpl extends NoneDomainDao {
 		});
 	}
 
-	public BeanMap<String, Object> byteFieldMaps(Map<byte[], byte[]> bmap) {
+	public Object byteFieldMaps(Map<byte[], byte[]> bmap) {
 		if (bmap == null || bmap.size() == 0)
 			return null;
-		BeanMap<String, Object> retmapper = new BeanMap<String, Object>();
+		if (bmap.containsKey(EXT_TYPE)) {
+			return bmap.get(EXT_OBJ);
+		} else {
+			BeanMap<String, Object> retmapper = new BeanMap<String, Object>();
 
-		StringType.foldMap(retmapper, bmap);
-		// for (Entry<byte[], byte[]> entry : bmap.entrySet()) {
-		// retmapper.put(new String(entry.getKey()),
-		// StringType.toTObject(entry.getValue()));
-		// }
-		return retmapper;
+			StringType.foldMap(retmapper, bmap);
+			// for (Entry<byte[], byte[]> entry : bmap.entrySet()) {
+			// retmapper.put(new String(entry.getKey()),
+			// StringType.toTObject(entry.getValue()));
+			// }
+			return retmapper;
+		}
 	}
 
 	@Override

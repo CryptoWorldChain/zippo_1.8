@@ -1,17 +1,15 @@
 package onight.sm.redis.scala.persist
 
-import org.codehaus.jackson.map.util.LRUMap
+import java.util.concurrent.TimeUnit
+
+import com.google.common.cache.Cache
+import com.google.common.cache.CacheBuilder
+
 import onight.tfw.mservice.NodeHelper
 import onight.tfw.ojpa.api.OJpaDAO
-import java.util.concurrent.ConcurrentHashMap
-import com.google.common.cache.CacheBuilder
-import com.google.common.cache.Cache
-import java.util.concurrent.TimeUnit
-import com.github.mauricio.async.db.RowData
+import com.google.protobuf.Message
+import onight.tfw.sm.api.SMSession
 import onight.sm.redis.entity.TokenEncKeys
-import onight.sm.redis.entity.LoginResIDSession
-import onight.tfw.ojpa.api.CASCriteria
-import onight.tfw.outils.serialize.SerializerUtil
 
 abstract class RedisLocalCache[T] {
   val pconfig = NodeHelper.getPropInstance;
@@ -21,7 +19,7 @@ abstract class RedisLocalCache[T] {
     .build().asInstanceOf[Cache[String, T]];
 
   def getKey(v: T): String
-  val dao: OJpaDAO[T]
+  def dao: OJpaDAO[T]
 
   def get(v: T): T = {
     val obj = redisLocalCache.getIfPresent(getKey(v));
@@ -29,12 +27,13 @@ abstract class RedisLocalCache[T] {
       obj
     } else {
       val redisobj = dao.selectByPrimaryKey(v);
-      if (redisobj != null)
+      if (redisobj != null) {
         redisLocalCache.put(getKey(v), redisobj)
+      }
       redisobj
     }
   }
- 
+
   def getFromDb(v: T): T = {
     val redisobj = dao.selectByPrimaryKey(v);
     if (redisobj != null)
@@ -59,9 +58,11 @@ abstract class RedisLocalCache[T] {
   }
 }
 
-object LoginIDRedisLoCache extends RedisLocalCache[LoginResIDSession] {
-  def getKey(v: LoginResIDSession) = v.globalID
-  val dao: OJpaDAO[LoginResIDSession] = RedisDAOs.logiddao;
+object LoginIDRedisLoCache extends RedisLocalCache[SMSession] {
+  def getKey(v: SMSession) = v.getUserId+"/"+v.getResId
+  def dao: OJpaDAO[SMSession] = {
+    RedisDAOs.logiddao;
+  }
 }
 
 //object SMIDIDRedisLoCache extends RedisLocalCache[SMIDSession] {
@@ -70,6 +71,8 @@ object LoginIDRedisLoCache extends RedisLocalCache[LoginResIDSession] {
 //}
 
 object TokenRedisLoCache extends RedisLocalCache[TokenEncKeys] {
-  def getKey(v: TokenEncKeys) = v.timeIdx
-  val dao: OJpaDAO[TokenEncKeys] = RedisDAOs.tokenDao;
+  def getKey(v: TokenEncKeys) = v.getTimeIdx
+  def dao: OJpaDAO[TokenEncKeys] = {
+    RedisDAOs.tokenDao;
+  }
 }

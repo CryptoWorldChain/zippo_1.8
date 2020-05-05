@@ -40,7 +40,7 @@ object DDCConfig {
       if (d.length == 3) {
         (d(0).trim(), parseInt(d(1), SPEC_DISPATCHER_COUNT), parseInt(d(2), SPEC_DISPATCHER_WORKER))
       } else {
-        (d(0).trim(), SPEC_DISPATCHER_COUNT, SPEC_DISPATCHER_WORKER)
+        (d(0).trim(), 0, SPEC_DISPATCHER_WORKER)
       }
     }
   }

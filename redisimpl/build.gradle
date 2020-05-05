@@ -2,11 +2,12 @@
 version = '4.0.0'
 
 dependencies {
-	includeInJar 'org.springframework.data:spring-data-redis:2.1.2.RELEASE'
-	includeInJar 'redis.clients:jedis:2.9.0'
+	includeInJar 'org.springframework.data:spring-data-redis:2.2.7.RELEASE'
+	includeInJar 'redis.clients:jedis:3.3.0'
 //	includeInJar 'org.apache.commons:commons-pool2:2.4.2'
 	//includeInJar 'com.lambdaworks:lettuce:2.3.3'
-	includeInJar 'biz.paluch.redis:lettuce:4.5.0.Final'
+//	includeInJar 'biz.paluch.redis:lettuce:4.5.0.Final'
+	includeInJar 'io.lettuce:lettuce-core:5.3.0.RELEASE'
 	//	 testCompile 'junit:junit:4.12'
 }
 

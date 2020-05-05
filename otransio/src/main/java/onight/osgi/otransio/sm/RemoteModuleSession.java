@@ -118,7 +118,7 @@ public class RemoteModuleSession extends PSession {
 		this.connsPool = ckpool;
 		;
 		writerQ = new PacketQueue(ckpool, mss.packet_buffer_size,
-				mss.getOsocket().getDispatcher().getExecutorService("transio.remote.writer"), mss.packPool,
+				mss.getOsocket().getDispatcher().getExecutorServiceOrDefault("otransio.remote.writer","otransio"), mss.packPool,
 				mss.writerPool, mss.resendMap, mss.getResendBufferSize());
 	}
 

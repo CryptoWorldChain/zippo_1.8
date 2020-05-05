@@ -15,8 +15,16 @@ import onight.tfw.otransio.api.PacketHelper
 import onight.tfw.otransio.api.beans.FramePacket
 import onight.sm.Ssm.PBCommand
 
+import org.apache.felix.ipojo.annotations.Provides
+import onight.tfw.ntrans.api.ActorService
+import onight.tfw.proxy.IActor
+import onight.tfw.otransio.api.session.CMDService
+import org.apache.felix.ipojo.annotations.Instantiate
+
 @NActorProvider
-object TokenGenActor extends SessionModules[PBToken] {
+@Instantiate
+@Provides(specifications = Array(classOf[ActorService], classOf[IActor], classOf[CMDService]))
+class TokenGenActor extends SessionModules[PBToken] {
   override def service = TokenGenService
 }
 

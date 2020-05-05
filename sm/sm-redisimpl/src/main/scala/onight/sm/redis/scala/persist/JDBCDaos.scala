@@ -31,13 +31,14 @@ object JDBCDaos extends OLog {
 
   val Sel_SQL = pconfig.get("sm.jdbc.sql.select.loginid", "SELECT LOGIN_ID,STATUS,PASSWORD FROM TFG_LOGIN_USER WHERE LOGIN_ID=? AND STATUS=1");
   val SQLMap = new HashMap[String, String];
-  pconfig.get("sm.jdbc.sql.select", "").split(";").foreach { x =>
-    pconfig.findMatch("sm.jdbc.sql.select.*", new IFinder {
-      def onMatch(key: String, v: String) = {
-        SQLMap.put(key.substring("sm.jdbc.sql.select.".length()), v)
-      }
-    });
-  }
+  //  pconfig.get("sm.jdbc.sql.select", "").split(";").foreach { x =>
+  pconfig.findMatch("sm.jdbc.sql.select.*", new IFinder {
+    def onMatch(key: String, v: String) = {
+      log.debug("add login sql:" + key.substring("sm.jdbc.sql.select.".length()) + "=>" + v);
+      SQLMap.put(key.substring("sm.jdbc.sql.select.".length()).trim(), v.trim())
+    }
+  });
+  //  }
   // ad-hoc session provider on the REPL
   implicit val session = AutoSession
 
@@ -72,16 +73,15 @@ object JDBCDaos extends OLog {
       ("third_loginid1", pbo.getThirdLoginid1)
     } else if (StringUtils.isNoneBlank(pbo.getThirdLoginid2)) {
       ("third_loginid2", pbo.getThirdLoginid2)
-    }
-    else null
+    } else null
   }
 
-  def doSelectByOthers(loginType:(String, String),sso: PBSSO): Map[String, Any] = {
-    try {
-      if (loginType == null) return null;
+  def doSelectByOthers(loginType: (String, String), sso: PBSSO): Map[String, Any] = {
+    if (loginType == null) return null;
 
-      val sql = SQLMap.get(loginType._1);
-      if (sql == null) return null;
+    val sql = SQLMap.get(loginType._1);
+    if (sql == null) return null;
+    try {
 
       val passwd = SQL(sql).bind(loginType._2).map { rs =>
         //        rs.string("PASSWORD")
@@ -94,7 +94,7 @@ object JDBCDaos extends OLog {
       }
       return null;
     } catch {
-      case e: Exception => log.warn("SELECT_PWD_ERROR:" + Sel_SQL + ",=" + sso, e); null
+      case e: Exception => log.warn("SELECT_PWD_ERROR:" + sql + "," + sso, e); null
     }
 
   }
