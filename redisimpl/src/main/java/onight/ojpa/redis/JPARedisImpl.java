@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import onight.ojpa.redis.loader.BatchDao;
 import onight.ojpa.redis.loader.DaoRedisImpl;
 import onight.ojpa.redis.loader.RedisConnector;
+import onight.tfw.ntrans.api.ActorService;
 import onight.tfw.ntrans.api.exception.MessageException;
 import onight.tfw.ojpa.api.BatchExecutor;
 import onight.tfw.ojpa.api.DomainDaoSupport;
@@ -24,9 +25,9 @@ import onight.tfw.outils.conf.PropHelper;
 
 @Component(immediate = true)
 @Instantiate(name = "redisimpl")
-@Provides(specifications = StoreServiceProvider.class, strategy = "SINGLETON")
+@Provides(specifications = { ActorService.class, StoreServiceProvider.class, QService.class }, strategy = "SINGLETON")
 @Slf4j
-public class JPARedisImpl implements StoreServiceProvider, QService {
+public class JPARedisImpl implements StoreServiceProvider, QService,ActorService {
 
 	@Override
 	public String getProviderid() {

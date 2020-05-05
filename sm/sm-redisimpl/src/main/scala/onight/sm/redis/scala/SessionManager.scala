@@ -32,20 +32,24 @@ import onight.tfw.async.CompleteHandler
 import onight.sm.Ssm.PBSSORet
 import onight.sm.Ssm.RetCode
 import onight.tfw.otransio.api.PacketHelper
+import org.apache.felix.ipojo.annotations.Instantiate
 
 @NActorProvider
+@Instantiate(name = "sm_impl")
 @Provides(specifications = Array(classOf[ActorService], classOf[IActor], classOf[CMDService]))
 class SessionManagerImpl extends SessionModules[PBSSO] with ISessionManager {
   override def service = SessionManager
 
-  override def invalidSession(smid: String): Unit = {
+  override def invalidSession(smid: String): SMSession = {
     val session = SessionManager.checkAndUpdateSession(smid)._1
     if (session != null) {
       SessionManager.removeSession(session)
+      
     }
+    null;
   }
   
-  override def updateSession(newsession:SMSession): Unit = {
+  override def updateSession(newsession:SMSession): SMSession = {
     newsession.setLoginId(null)
     newsession.setUserId(null);
     newsession.setResId(null);

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.dao.DataAccessException;
+import org.springframework.data.redis.connection.DefaultMessage;
 import org.springframework.data.redis.connection.Message;
 import org.springframework.data.redis.connection.MessageListener;
 import org.springframework.data.redis.connection.RedisConnection;
@@ -15,7 +16,9 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.listener.ChannelTopic;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.data.redis.listener.Topic;
+import org.springframework.data.redis.serializer.JdkSerializationRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializer;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import lombok.extern.slf4j.Slf4j;
 import onight.tfw.ntrans.api.exception.MessageException;
@@ -116,12 +119,13 @@ public class RedisConnector implements MessageListener {
 		log.info("Redis退出成功");
 	}
 
+	JdkSerializationRedisSerializer valueDeserial = new JdkSerializationRedisSerializer();
 	@Override
 	public void onMessage(Message message, byte[] pattern) {
 		String topic = serializer.deserialize(message.getChannel());
 		List<IRecievier> recs = topicReceivers.get(topic);
 		for (IRecievier rec : recs) {
-			rec.onMessage(topic, message.getBody());
+			rec.onMessage(topic,(Serializable) valueDeserial.deserialize(message.getBody()));
 		}
 	}
 
