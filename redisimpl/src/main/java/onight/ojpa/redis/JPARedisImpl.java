@@ -49,7 +49,9 @@ public class JPARedisImpl implements StoreServiceProvider, QService,ActorService
 		props = new PropHelper(bundleContext);
 		log.info("启动中...@" + bundleContext);
 		redis.onStart(props.get("ofw.redis.addr", "172.30.12.44"), props.get("ofw.redis.port", 6379),
-				props.get("ofw.redis.poolsize", 20));
+				props.get("ofw.redis.poolsize", 20),
+				props.get("ofw.redis.passwd", null)
+				);
 		log.info("启动完成...");
 	}
 

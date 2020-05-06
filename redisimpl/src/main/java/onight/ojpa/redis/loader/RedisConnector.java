@@ -5,11 +5,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.dao.DataAccessException;
-import org.springframework.data.redis.connection.DefaultMessage;
 import org.springframework.data.redis.connection.Message;
 import org.springframework.data.redis.connection.MessageListener;
+import org.springframework.data.redis.connection.RedisConfiguration;
 import org.springframework.data.redis.connection.RedisConnection;
+import org.springframework.data.redis.connection.RedisSentinelConfiguration;
+import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -18,7 +21,6 @@ import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.data.redis.listener.Topic;
 import org.springframework.data.redis.serializer.JdkSerializationRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializer;
-import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import lombok.extern.slf4j.Slf4j;
 import onight.tfw.ntrans.api.exception.MessageException;
@@ -49,12 +51,16 @@ public class RedisConnector implements MessageListener {
 	// return lfactory;
 	// }
 
-	public LettuceConnectionFactory jRedisFactory(String addr, int port, int poolsize) {
+	public LettuceConnectionFactory jRedisFactory(String addr, int port, int poolsize, String password) {
 		// LettuceConnectionFactory lfactory=new LettuceConnectionFactory();
 		// lfactory.setHostName(addr);
 		// lfactory.setPort(port);
 		// lfactory.setUsePool(true);
-		LettuceConnectionFactory lfactory = new LettuceConnectionFactory(addr, port);
+		RedisStandaloneConfiguration config = new RedisStandaloneConfiguration(addr, port);
+		if (StringUtils.isNoneBlank(password)) {
+			config.setPassword(password);
+		}
+		LettuceConnectionFactory lfactory = new LettuceConnectionFactory(config);
 		lfactory.setShareNativeConnection(true);
 		lfactory.afterPropertiesSet();
 		lfactory.initConnection();
@@ -67,10 +73,9 @@ public class RedisConnector implements MessageListener {
 
 	private volatile RedisSerializer<String> serializer = RedisSerializer.string();
 
-	public synchronized void onStart(String addr, int port, int poolsize) {
+	public synchronized void onStart(String addr, int port, int poolsize, String password) {
 		log.info("Redis启动...");
-		factory = jRedisFactory(addr, port, poolsize);
-
+		factory = jRedisFactory(addr, port, poolsize, password);
 		template = new FastRedisTemplate<String, Object>();
 		template.setConnectionFactory(factory);
 		template.afterPropertiesSet();
@@ -84,7 +89,7 @@ public class RedisConnector implements MessageListener {
 			@Override
 			public boolean onMessage(String arg0, Serializable obj) {
 				if (obj != null && obj instanceof byte[]) {
-					log.info("get redis redis_impl_man message:" + new String((byte[])obj));
+					log.info("get redis redis_impl_man message:" + new String((byte[]) obj));
 				} else {
 					log.info("get redis redis_impl_man message:" + obj);
 				}
@@ -115,17 +120,18 @@ public class RedisConnector implements MessageListener {
 		log.info("Redis退出...");
 		rML.stop();
 		factory.destroy();
-		
+
 		log.info("Redis退出成功");
 	}
 
 	JdkSerializationRedisSerializer valueDeserial = new JdkSerializationRedisSerializer();
+
 	@Override
 	public void onMessage(Message message, byte[] pattern) {
 		String topic = serializer.deserialize(message.getChannel());
 		List<IRecievier> recs = topicReceivers.get(topic);
 		for (IRecievier rec : recs) {
-			rec.onMessage(topic,(Serializable) valueDeserial.deserialize(message.getBody()));
+			rec.onMessage(topic, (Serializable) valueDeserial.deserialize(message.getBody()));
 		}
 	}
 
