@@ -29,7 +29,7 @@ public class DESCoder {
 		String decryptStr = null;
 		try {
 			// 解密
-			Cipher cipher = Cipher.getInstance("DES/ECB/PKCS5Pading");
+			Cipher cipher = Cipher.getInstance("AES/CBC/PKCS7Padding","SC");
 
 			byte[] input = Base64.decodeBase64(cipherText.trim().getBytes(
 					CHARSET));
@@ -48,7 +48,7 @@ public class DESCoder {
 	/**
 	 * 对message进行DES加密
 	 * 
-	 * @param message
+	 * @param message 
 	 * @return
 	 * @throws DesException
 	 */
@@ -59,7 +59,7 @@ public class DESCoder {
 
 		try {
 			// 加密
-			Cipher cipher = Cipher.getInstance("DES/ECB/PKCS5Pading");
+			Cipher cipher = Cipher.getInstance("AES/CBC/PKCS7Padding","SC");
 			cipher.init(Cipher.ENCRYPT_MODE, genSecretKey(desKey));
 			byte[] cipherText = cipher
 					.doFinal(message.trim().getBytes(CHARSET));
@@ -82,7 +82,7 @@ public class DESCoder {
 			throws DesException {
 		try {
 			// 加密
-			Cipher cipher = Cipher.getInstance("DES/ECB/PKCS5Padding");
+			Cipher cipher = Cipher.getInstance("AES/CBC/PKCS7Padding","SC");
 			cipher.init(Cipher.ENCRYPT_MODE, genSecretKey(desKey));
 			byte[] cipherText = cipher
 					.doFinal(message.trim().getBytes(CHARSET));
@@ -104,7 +104,7 @@ public class DESCoder {
 		String decryptStr = null;
 		try {
 			// 解密
-			Cipher cipher = Cipher.getInstance("DES/ECB/PKCS5Padding");
+			Cipher cipher = Cipher.getInstance("AES/CBC/PKCS7Padding","SC");
 			cipher.init(Cipher.DECRYPT_MODE, genSecretKey(desKey));
 			byte[] output = cipher.doFinal(bytes);
 			decryptStr = new String(output, CHARSET);
@@ -127,7 +127,7 @@ public class DESCoder {
 		String decryptStr = null;
 		try {
 			// 解密
-			Cipher cipher = Cipher.getInstance("DES/ECB/PKCS5Padding");
+			Cipher cipher = Cipher.getInstance("AES/CBC/PKCS7Padding","SC");
 			cipher.init(Cipher.ENCRYPT_MODE, genSecretKey(desKey));
 			CipherInputStream cis = new CipherInputStream(is, cipher);
 			return cis;
@@ -147,7 +147,7 @@ public class DESCoder {
 		String decryptStr = null;
 		try {
 			// 解密
-			Cipher cipher = Cipher.getInstance("DES/ECB/PKCS5Padding");
+			Cipher cipher = Cipher.getInstance("AES/CBC/PKCS7Padding","SC");
 			cipher.init(Cipher.DECRYPT_MODE, genSecretKey(desKey));
 			CipherInputStream cis = new CipherInputStream(is, cipher);
 			return cis;
@@ -160,7 +160,7 @@ public class DESCoder {
 			throws InvalidKeyException, NoSuchAlgorithmException,
 			InvalidKeySpecException {
 		DESKeySpec desKeySpec = new DESKeySpec(hexStringToByte(key));
-		SecretKeyFactory keyFactory = SecretKeyFactory.getInstance("DES");
+		SecretKeyFactory keyFactory = SecretKeyFactory.getInstance("AES");
 		SecretKey secretKey = keyFactory.generateSecret(desKeySpec);
 
 		return secretKey;

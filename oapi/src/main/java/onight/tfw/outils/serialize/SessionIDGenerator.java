@@ -1,6 +1,7 @@
 package onight.tfw.outils.serialize;
 
 import java.net.InetAddress;
+import java.security.Security;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.codec.binary.Base64;
@@ -48,27 +49,28 @@ public class SessionIDGenerator {
 	}
 
 	public String generate(String userid) {
-		StringBuilder sb = new StringBuilder(32).append(genSum(userid)).append(randStr()).append(prefix).append(getCount()).append(SEP_CH).append(userid);
+		StringBuilder sb = new StringBuilder(32).append(genSum(userid)).append(randStr()).append(prefix)
+				.append(getCount()).append(SEP_CH).append(userid);
 		String v = sb.toString();
 		v = Base64.encodeBase64URLSafeString(v.getBytes());
 		char cs = genSum(v);
 		return v + cs;
 	}
 
-	public static  String fetchid(String token) {
+	public static String fetchid(String token) {
 		if (!checkSum(token))
 			return null;
-		String decode = new String(Base64.decodeBase64(token.substring(0,token.length()-1)));
+		String decode = new String(Base64.decodeBase64(token.substring(0, token.length() - 1)));
 		int idx = decode.indexOf(':');
-		if (idx <= 0||decode.length()<8)
+		if (idx <= 0 || decode.length() < 8)
 			return null;
-		return decode.substring(idx+1).trim();
+		return decode.substring(idx + 1).trim();
 	}
-	
 
 	public String genToken(String userid, String desKey, String keyIdx) {
 		// StringBuilder sb = new StringBuilder(generate(userid));
-		StringBuilder sb = new StringBuilder(32).append(randStr()).append(prefix).append(getCount()).append(SEP_CH).append(userid);
+		StringBuilder sb = new StringBuilder(32).append(randStr()).append(prefix).append(getCount()).append(SEP_CH)
+				.append(userid);
 		String v = sb.toString();
 		char cs = genSum(v);
 		v += cs;
@@ -111,9 +113,9 @@ public class SessionIDGenerator {
 	private static final String JVMStr = UUIDGenerator.JVM;
 
 	public static String timeTick = int2Str((int) (System.currentTimeMillis()), 100);
-	
-	public static String CounterLock="CounterLock";
-	
+
+	public static String CounterLock = "CounterLock";
+
 	private final static String getCount() {
 		int curr = counter.get();
 		if (curr > 10000) {
@@ -180,19 +182,22 @@ public class SessionIDGenerator {
 
 	public static void main(String[] args) {
 		System.out.println("PID:" + JVMStr);
+		Security.insertProviderAt(new org.spongycastle.jce.provider.BouncyCastleProvider(),1);
+ 
 		SessionIDGenerator sid = new SessionIDGenerator("abc");
 		System.out.println("IP:" + sid.prefix);
 		System.out.println("randStr:" + randStr());
-		System.out.println((System.currentTimeMillis()) + "::" + System.currentTimeMillis());
+		System.out.println((System.currentTimeMillis()) + "::" + System.currentTimeMillis()); 
 		System.out.println(int2Str((int) (System.currentTimeMillis() >> 8)));
 		System.out.println(int2Str((int) (System.currentTimeMillis() >> 8)));
-//		for (int i = 0; i < 10; i++) {
-//			String smid = sid.generate("hello");
-//			System.out.println(i + ":" + smid + ":check==" + checkSum(smid)+",userid="+fetchid(smid).equals("hello"));
-//		}
-		System.out.println("aaaa==>"+checkSum("2c918082000000090166befa1f5b0001"));
+		// for (int i = 0; i < 10; i++) {
+		// String smid = sid.generate("hello");
+		// System.out.println(i + ":" + smid + ":check==" +
+		// checkSum(smid)+",userid="+fetchid(smid).equals("hello"));
+		// }
+		System.out.println("aaaa==>" + checkSum("2c918082000000090166befa1f5b0001"));
 		for (int i = 0; i < 10; i++) {
-			String smid = sid.genToken("a-"+i, "aabbc323232322c", "AF");
+			String smid = sid.genToken("a-" + i, "aabbc323232322c", "AF");
 			System.out.println("a-" + i + ":token:" + smid + ":check==" + sid.checkToken(smid, "aabbcc") + ":equal="
 					+ StringUtils.equals("a-" + i, sid.checkToken(smid, "aabbcc")));
 		}

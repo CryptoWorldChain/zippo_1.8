@@ -46,6 +46,10 @@ public abstract class RestfulDBStoreProvider extends ORDBProvider implements IAc
 	public RestfulDBStoreProvider(BundleContext bundleContext) {
 		super(bundleContext);
 	}
+	
+	public RestfulDBStoreProvider(BundleContext bundleContext,String sql_target) {
+		super(bundleContext,sql_target);
+	}
 
 	PropHelper props = new PropHelper(bundleContext);
 

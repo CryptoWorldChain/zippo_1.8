@@ -129,13 +129,13 @@ public class SpringContextLoader {
 		if (beans == null) {
 			return;
 		}
-		
+
 		Object mfb = beans.remove(getMapperBeanName(mapper, scope));
 		if (mfb == null) {
 			log.debug("cannot unregister mapper: bean object not found:" + getMapperBeanName(mapper, scope));
 			return;
 		}
-		
+
 		ConfigurableApplicationContext configContext = (ConfigurableApplicationContext) appContext;
 		ConfigurableBeanFactory beanRegistry = configContext.getBeanFactory();
 		beanRegistry.destroyBean(scope + "." + StringUtils.uncapitalize(mapper.getClass().getName()), mfb);
@@ -151,13 +151,13 @@ public class SpringContextLoader {
 			ret[i++] = url.toString();
 
 		}
-		
+
 		return ret;
 	}
 
 	BundleContext loadContext;
 
-	public void init(BundleContext bundleContext, String[] contextConfigs) {
+	public void init(BundleContext bundleContext, String[] contextConfigs, String sql_target) {
 
 		this.bundleContext = bundleContext;
 
@@ -166,7 +166,11 @@ public class SpringContextLoader {
 		HashSet<String> configs = new HashSet<String>();
 		HashSet<String> newconfigs = new HashSet<String>();
 		newconfigs.addAll(Arrays.asList(contextConfigs));
-
+		if (StringUtils.isBlank(sql_target)) {
+			sql_target = "";
+		} else {
+			sql_target = "." + sql_target;
+		}
 		for (String config : Arrays
 				.asList(new String[] { "/SpringContext-ordb-common.xml", "/SpringContext-ordb-driver.xml", })) {
 			if (!configs.contains(config)) {
@@ -175,9 +179,10 @@ public class SpringContextLoader {
 		}
 		// bundle://42.0:18/SpringContext-ordb-common.xml
 		String bundleid = SpringContextLoader.class.getResource("/SpringContext-ordb-common.xml").getHost();
-		
+
 		// MT Update ##########
-//		loadContext = bundleContext.getBundle(Integer.parseInt(bundleid.split("\\.")[0])).getBundleContext();
+		// loadContext =
+		// bundleContext.getBundle(Integer.parseInt(bundleid.split("\\.")[0])).getBundleContext();
 		int bid;
 		try {
 			bid = Integer.parseInt(bundleid.split("\\.")[0]);
@@ -185,8 +190,8 @@ public class SpringContextLoader {
 			bid = Integer.parseInt(bundleid.split("_")[1].split("\\.")[0]);
 		}
 		loadContext = bundleContext.getBundle(bid).getBundleContext();
-		//  ##########
-		
+		// ##########
+
 		// bundleContext.getBundle()
 		for (String config : newconfigs) {
 			if (configs.contains(config)) {
@@ -228,34 +233,32 @@ public class SpringContextLoader {
 				return super.getClassLoader();
 			}
 		};
-		
-		if(log.isDebugEnabled()) {
-			log.debug("init spring mybatis ok");
-		}
-		//org.mybatis.spring.SqlSessionFactoryBean bean = new SqlSessionFactoryBean();
-		//C3PO => Hikari针对mysql连接池, @author lance 2018.12.30
+
+		// org.mybatis.spring.SqlSessionFactoryBean bean = new SqlSessionFactoryBean();
+		// C3PO => Hikari针对mysql连接池, @author lance 2018.12.30
 		HikariDataSource ds = (HikariDataSource) appContext.getBean("dataSource");
-		ds.setJdbcUrl(propHelper.get("ofw.ordb.url", "jdbc:mysql://localhost:3306/msb?autoReconnect=true&amp;useUnicode=true&amp;characterEncoding=utf8"));
-		ds.setUsername(propHelper.get("ofw.ordb.usr", "msbao"));
-		ds.setPassword(propHelper.get("ofw.ordb.pwd", "msbao"));
-		ds.setMaximumPoolSize(propHelper.get("ofw.ordb.maxpool", 100));
-		ds.setMinimumIdle(propHelper.get("ofw.ordb.minpool", 10));
+		ds.setJdbcUrl(propHelper.get("ofw.ordb.url"+sql_target,
+				"jdbc:mysql://localhost:3306/msb?autoReconnect=true&amp;useUnicode=true&amp;characterEncoding=utf8"));
+		ds.setUsername(propHelper.get("ofw.ordb.usr"+sql_target, "msbao"));
+		ds.setPassword(propHelper.get("ofw.ordb.pwd"+sql_target, "msbao"));
+		ds.setMaximumPoolSize(propHelper.get("ofw.ordb.maxpool"+sql_target, 100));
+		ds.setMinimumIdle(propHelper.get("ofw.ordb.minpool"+sql_target, 10));
 		ds.setConnectionTestQuery("SELECT 1");
-		//30000 (30 seconds)
+		// 30000 (30 seconds)
 		ds.setConnectionTimeout(30000);
 		ds.setPoolName("CSC-ConnectionPool");
-		ds.setDriverClassName(propHelper.get("ofw.ordb.driver", "com.mysql.cj.jdbc.Driver"));
-		
+		ds.setDriverClassName(propHelper.get("ofw.ordb.driver"+sql_target, "com.mysql.cj.jdbc.Driver"));
+
 		ds.addDataSourceProperty("cachePrepStmts", "true");
 		ds.addDataSourceProperty("prepStmtCacheSize", "250");
 		ds.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
-	
+
 		log.info("ORDBURL=" + ds.getJdbcUrl());
 		String names[] = appContext.getBeanDefinitionNames();
 		log.info("total beans:" + names.length + ",springcontext=" + appContext + "@" + this);
 
 		txManager = (PlatformTransactionManager) appContext.getBean("transactionManager");
-		log.info("txManager=" + txManager);
+		log.info("txManager=" + txManager+",target="+sql_target);
 	}
 
 	public void registerDaoBeans() {
@@ -292,7 +295,7 @@ public class SpringContextLoader {
 		if (appContext != null) {
 			((ConfigurableApplicationContext) appContext).close();
 		}
-		
+
 		log.info("退出完成：SpringContext");
 	}
 }

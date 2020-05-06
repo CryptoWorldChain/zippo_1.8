@@ -10,6 +10,7 @@ import onight.tfw.otransio.api.beans.FramePacket
 import onight.tfw.outils.serialize.SessionIDGenerator
 import onight.tfw.mservice.NodeHelper
 import org.apache.commons.lang3.StringUtils
+import java.security.Security
 
 @Slf4j
 abstract class SessionModules[T <: Message] extends AsyncPBActor[T] with OLog {
@@ -41,6 +42,10 @@ abstract class SessionModules[T <: Message] extends AsyncPBActor[T] with OLog {
 }
 
 object SMIDHelper {
+  
+//  Security.insertProviderAt(new org.spongycastle.jce.provider.BouncyCastleProvider(), 0);
+  Security.addProvider(new org.spongycastle.jce.provider.BouncyCastleProvider())
+  
   def cureTimeIdx: String = {
     StringUtils.rightPad(
       SessionIDGenerator.int2Str(((System.currentTimeMillis() / (60 * 1000)) % (24 * 60)).asInstanceOf[Int]), 2, "W");

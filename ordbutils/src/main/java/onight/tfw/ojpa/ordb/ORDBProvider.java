@@ -39,6 +39,14 @@ public abstract class ORDBProvider implements StoreServiceProvider {
 		log.debug("create:JPAORDBImpl:");
 		this.bundleContext = bundleContext;
 	}
+	
+	public ORDBProvider(BundleContext bundleContext,String sql_target) {
+		super();
+		log.debug("create:JPAORDBImpl:with target:"+sql_target);
+		this.sql_target = sql_target;
+		this.bundleContext = bundleContext;
+	}
+
 
 	@AllArgsConstructor
 	public class SqlMapperInfo {
@@ -47,14 +55,16 @@ public abstract class ORDBProvider implements StoreServiceProvider {
 	}
 
 	LinkedBlockingDeque<SqlMapperInfo> wishlist = new LinkedBlockingDeque<SqlMapperInfo>();
-
+	
+	String sql_target = "";
+	
 	@Validate
 	public synchronized void startup() {
 		log.info("启动中...@" + bundleContext);
 		if (springLoader == null) {
 			springLoader = new SpringContextLoader();
 		}
-		springLoader.init(bundleContext, getContextConfigs());
+		springLoader.init(bundleContext, getContextConfigs(),sql_target);
 		springLoader.registerDaoBeans();
 		for (SqlMapperInfo mapper : wishlist) {
 			springLoader.registerMapper(mapper.sqlmapper, mapper.sf);

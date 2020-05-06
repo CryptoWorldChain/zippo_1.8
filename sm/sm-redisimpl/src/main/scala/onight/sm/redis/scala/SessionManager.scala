@@ -133,7 +133,7 @@ object SessionManager extends OLog with PBUtils with LService[PBSSO] {
       //      insertBox.put(session.globalID(), session)
 
     } finally {
-      //      ThreadContext.cleanContext()
+         ThreadContext.removeContext(JpaContextConstants.Cache_Timeout_Second);
     }
   }
 
