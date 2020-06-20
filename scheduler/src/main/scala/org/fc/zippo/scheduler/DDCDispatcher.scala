@@ -19,24 +19,6 @@ case class DDCDispatcher(name: String, q: LinkedBlockingDeque[Worker], threadPoo
 
     while (running.get) {
       try {
-        if (System.currentTimeMillis() - lastlogTime > DDCConfig.LOGINFO_DISPATCHER_TIMESEC * 1000) {
-          if (threadPool.isInstanceOf[ForkJoinPool]) {
-            val fjth = threadPool.asInstanceOf[ForkJoinPool];
-            log.error("DDC-Dispatcher:" + name + ",tp[A=" + fjth.getActiveThreadCount + ",Q=" + fjth.getQueuedTaskCount + ",C=" + fjth.getPoolSize
-              + ",M=" + fjth.getParallelism
-              + ",S=" + fjth.getStealCount + ",F=" + fjth.getRunningThreadCount
-              + "],defQ.size=" + q.size());
-          }
-          else if (threadPool.isInstanceOf[ThreadPoolExecutor]) {
-            val fjth = threadPool.asInstanceOf[ThreadPoolExecutor];
-            log.error("DDC-Dispatcher:" + name + ",tp[A=" + fjth.getActiveCount + ",Q=" + fjth.getQueue.size() + ",C=" + fjth.getPoolSize
-              + ",Core=" + fjth.getCorePoolSize
-              + ",Max=" + fjth.getMaximumPoolSize + ",Largest=" + fjth.getLargestPoolSize
-              +",taskcc="+fjth.getTaskCount
-              + "],defQ.size=" + q.size());
-          }
-          lastlogTime = System.currentTimeMillis();
-        }
         val task = q.poll(DDCConfig.DEFAULT_DISPATCHER_QUEUE_WAIT_MS, TimeUnit.MILLISECONDS);
         threadPool.submit(task);
       } catch {

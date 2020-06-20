@@ -157,9 +157,8 @@ public class OSocketImpl implements Serializable, ISocket {
 				rmb.getNodeInfo().setNodeName(node_from);
 			}
 			connectBCUID.set(conn, node_from);
-			// log.debug("Get New Login Connection From:" +
-			// rmb.getNodeInfo().getUname() + ",nodeid=" + node_from
-			// + ",conn=" + conn);
+			log.error("Get New Login Connection From:" + rmb.getNodeInfo().getUname() + ",nodeid=" + node_from
+					+ ",conn=" + conn.getPeerAddress());
 			if (node_from != null) {
 				PSession session = mss.byNodeName(node_from);
 				if (session != null && session instanceof RemoteModuleSession) {

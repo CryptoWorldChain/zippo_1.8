@@ -68,6 +68,7 @@ object LoginResIDSession {
   def apply(loginId: String, resId: String): SMSession = {
     val ret = new SMSession();
     ret.setLoginId(loginId)
+    ret.setUserId(loginId)
     ret.setResId(resId)
     ret
   }

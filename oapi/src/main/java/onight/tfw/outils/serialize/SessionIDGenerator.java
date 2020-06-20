@@ -180,27 +180,4 @@ public class SessionIDGenerator {
 		return sumToSingleDigit(k / radix) + (k % radix);
 	}
 
-	public static void main(String[] args) {
-		System.out.println("PID:" + JVMStr);
-		Security.insertProviderAt(new org.spongycastle.jce.provider.BouncyCastleProvider(),1);
- 
-		SessionIDGenerator sid = new SessionIDGenerator("abc");
-		System.out.println("IP:" + sid.prefix);
-		System.out.println("randStr:" + randStr());
-		System.out.println((System.currentTimeMillis()) + "::" + System.currentTimeMillis()); 
-		System.out.println(int2Str((int) (System.currentTimeMillis() >> 8)));
-		System.out.println(int2Str((int) (System.currentTimeMillis() >> 8)));
-		// for (int i = 0; i < 10; i++) {
-		// String smid = sid.generate("hello");
-		// System.out.println(i + ":" + smid + ":check==" +
-		// checkSum(smid)+",userid="+fetchid(smid).equals("hello"));
-		// }
-		System.out.println("aaaa==>" + checkSum("2c918082000000090166befa1f5b0001"));
-		for (int i = 0; i < 10; i++) {
-			String smid = sid.genToken("a-" + i, "aabbc323232322c", "AF");
-			System.out.println("a-" + i + ":token:" + smid + ":check==" + sid.checkToken(smid, "aabbcc") + ":equal="
-					+ StringUtils.equals("a-" + i, sid.checkToken(smid, "aabbcc")));
-		}
-
-	}
 }

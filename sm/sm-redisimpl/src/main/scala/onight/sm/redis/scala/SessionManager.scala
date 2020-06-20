@@ -270,10 +270,10 @@ object SessionManager extends OLog with PBUtils with LService[PBSSO] {
   }
 
   // 登出
-  def logout(smid: String, loginId: String, resId: String): Tuple2[SMSession, String] = {
+  def logout(smid: String, userId: String, resId: String): Tuple2[SMSession, String] = {
     val tkgid = SMIDHelper.fetchUID(smid);
-    val searchSession = LoginResIDSession(loginId, resId);
-    if (!StringUtils.equals(searchSession.getUserId + "/" + searchSession.getResId, tkgid)) {
+    val searchSession = LoginResIDSession(userId, resId);
+    if (!StringUtils.equals(userId + "/" + resId, tkgid)) {
       return (null, "smid_error_1")
     }
     var session = LoginIDRedisLoCache.get(searchSession);
@@ -286,8 +286,7 @@ object SessionManager extends OLog with PBUtils with LService[PBSSO] {
         if (!StringUtils.equals(session.getSmid(), smid)) {
           return (null, "smid_error_3")
         }
-      }
-
+      }else
       if (System.currentTimeMillis() - session.getLastUpdateMS > TimeOutMS) {
         removeSession(session);
         return (null, "session_timeout");

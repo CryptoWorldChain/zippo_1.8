@@ -47,7 +47,8 @@ public class NewConnCheckHealth {
 			connByIP.put(ip, conns);
 		}
 		if (conns.size() >= maxConnPreIP) {
-			log.error("cannot connect more for ip=" + ip + ",cursize=" + conns.size() + ",maxConnPreIP=" + maxConnPreIP);
+			log.error(
+					"cannot connect more for ip=" + ip + ",cursize=" + conns.size() + ",maxConnPreIP=" + maxConnPreIP);
 			conn.close();
 			return;
 		} else {
@@ -68,7 +69,7 @@ public class NewConnCheckHealth {
 			}
 
 		});
-		exec.schedule(new Runner(conn), maxConnTimeoutSec, TimeUnit.SECONDS);
+		exec.scheduleWithFixedDelay(new Runner(conn), maxConnTimeoutSec, maxConnTimeoutSec, TimeUnit.SECONDS);
 	}
 
 	public synchronized void removeConnection(Connection<?> conn, String ip) {
@@ -92,8 +93,10 @@ public class NewConnCheckHealth {
 			try {
 				if (conn != null && conn.isOpen()) {
 					// exec.remove(this);
-					if (conn.getAttributes().getAttribute(CONN_AUTH_INFO) == null) {
-						log.error("drop connection because no auth:"+conn.getPeerAddress());
+					if (conn.getAttributes().getAttribute(CONN_AUTH_INFO) == null
+							&& System.currentTimeMillis() > connCreateTime + 10000) {
+						log.error("drop connection because no auth:" + conn.getPeerAddress() + ",timeout="
+								+ (System.currentTimeMillis() - connCreateTime));
 						conn.close();
 					}
 				}

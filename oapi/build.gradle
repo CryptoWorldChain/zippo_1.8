@@ -1,5 +1,5 @@
 
-version='4.2.0'
+version='4.3.1'
 
 //group = 'onight.osgi'
 
@@ -20,8 +20,8 @@ dependencies {
 	compile 'javax.servlet:javax.servlet-api:3.1.0'
 	compile 'com.fasterxml.uuid:java-uuid-generator:3.1.5'
 	compile 'com.fasterxml.jackson.core:jackson-databind:2.9.8'
-	includeInJar "com.madgag.spongycastle:core:1.56.0.0"
-	includeInJar "com.madgag.spongycastle:prov:1.56.0.0"
+//	includeInJar "com.madgag.spongycastle:core:1.56.0.0"
+//	includeInJar "com.madgag.spongycastle:prov:1.56.0.0"
 
 }
 

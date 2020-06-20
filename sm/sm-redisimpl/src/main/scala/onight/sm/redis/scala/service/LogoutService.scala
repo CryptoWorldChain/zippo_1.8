@@ -49,7 +49,7 @@ object LogoutService extends OLog with PBUtils with LService[PBSSO] {
     if (pbo == null) {
       ret.setDesc("Packet_Error").setRetcode (RetCode.FAILED);
     } else {
-      val session = SessionManager.logout(pbo.getSmid, pbo.getLoginId, pbo.getResId)
+      val session = SessionManager.logout(pbo.getSmid, pbo.getUserId, pbo.getResId)
       if (session._1 != null) {
         ret.setRetcode(RetCode.SUCCESS) setLoginId (session._1.getLoginId());
         pack.getExtHead.append(ExtHeader.SESSIONID, new CookieBean(pbo.getSmid, 0))

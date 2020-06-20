@@ -140,8 +140,7 @@ public class CKConnPool extends ReusefulLoopPool<Connection> {
 					});
 					final FramePacket pack = mss.getLocalModulesPacket();
 					pack.putHeader(OSocketImpl.PACK_FROM, mss.getRmb().getNodeInfo().getNodeName());
-					// log.debug("write LoginModulePack from {}",
-					// mss.getRmb().getNodeInfo().getUname());
+					log.error("write LoginModulePack from "+conn.getLocalAddress()+",peer="+conn.getPeerAddress());
 					// log.trace("!!WriteLocalModulesPacket TO:" +
 					// conn.getPeerAddress() + ",From="
 					// + conn.getLocalAddress() + ",pack=" + pack.getFixHead());
@@ -210,4 +209,7 @@ public class CKConnPool extends ReusefulLoopPool<Connection> {
 		return null;
 	}
 
+	public static void main(String[] args) {
+		System.out.println(Runtime.getRuntime().freeMemory()/1024/1024);
+	}
 }

@@ -39,6 +39,7 @@ import java.util.concurrent.ForkJoinPool.ForkJoinWorkerThreadFactory
 import java.lang.Thread.UncaughtExceptionHandler
 import onight.tfw.outils.pool.ReusefulLoopPool
 import java.util.concurrent.ThreadFactory
+import java.util.ArrayList
 
 object DDCInstance extends OLog {
   val prop = new PropHelper(null);
@@ -50,6 +51,7 @@ object DDCInstance extends OLog {
   val specQDW = new ConcurrentHashMap[String, (LinkedBlockingDeque[Worker], Iterable[DDCDispatcher], ExecutorService)];
   val specQ = new ConcurrentHashMap[String, (String, LinkedBlockingDeque[Worker])];
 
+  val watchExcutors = new ArrayList[(String, ExecutorService)]();
   val running = new AtomicBoolean(true);
 
   class WrapperThread(pool: ReusefulLoopPool[Thread]) extends Thread {
@@ -175,6 +177,34 @@ object DDCInstance extends OLog {
       new Thread(new DDCDispatcher("default(" + i + ")", defaultQ, defaultWTC)).start()
     }
 
+    watchExcutors.add(("default", defaultWTC));
+    watchExcutors.add(("scheduler", daemonsWTC));
+    watchExcutors.add(("timeoutSchedule", timeoutSCH));
+
+    daemonsWTC.scheduleWithFixedDelay(new Runnable {
+      def run() {
+        watchExcutors.forEach(p => {
+          val name = p._1;
+          val threadPool = p._2;
+          if (threadPool.isInstanceOf[ForkJoinPool]) {
+            val fjth = threadPool.asInstanceOf[ForkJoinPool];
+            log.error("DDC-Dispatcher:" + name + ",tp[Active=" + fjth.getActiveThreadCount + ",Queue=" + fjth.getQueuedTaskCount + ",Pool=" + fjth.getPoolSize
+              + ",Parall=" + fjth.getParallelism
+              + ",Steal=" + fjth.getStealCount + ",Running=" + fjth.getRunningThreadCount
+              + "]");
+          } else if (threadPool.isInstanceOf[ThreadPoolExecutor]) {
+            val fjth = threadPool.asInstanceOf[ThreadPoolExecutor];
+            log.error("DDC-Dispatcher:" + name + ",tp[A=" + fjth.getActiveCount + ",Queue=" + fjth.getQueue.size() + ",P=" + fjth.getPoolSize
+              + ",Core=" + fjth.getCorePoolSize
+              + ",Max=" + fjth.getMaximumPoolSize + ",Largest=" + fjth.getLargestPoolSize
+              + ",taskcc=" + fjth.getTaskCount
+              + "]");
+          }
+        })
+
+      }
+    }, DDCConfig.LOGINFO_DISPATCHER_TIMESEC, DDCConfig.LOGINFO_DISPATCHER_TIMESEC, TimeUnit.SECONDS);
+
     //init specify dispatcher -- thread pools
     DDCConfig.specDispatchers().map { x =>
       val dcname = x._1
@@ -195,6 +225,8 @@ object DDCInstance extends OLog {
           new ForkJoinPool(wc, new FailToExistForkJoinWorkerThreadFactory(DDCConfig.RUNTIME_MAX_THREAD_COUNT), null, false);
       }
 
+      watchExcutors.add((dcname,newWTC));
+
       val incr = new AtomicInteger(0);
       val newDP = Array.fill(ddc)(0).map { x => new DDCDispatcher(dcname + "(" + incr.incrementAndGet() + ")", newQ, newWTC); }
       newDP.map { f => new Thread(f).start() }
@@ -210,7 +242,9 @@ object DDCInstance extends OLog {
       }
     }
     log.info("DDC-Startup[OK]: defaultWTC=" + DDCConfig.DEFAULT_WORKER_THREAD_COUNT + ",daemonsWTC=" + DDCConfig.DAEMON_WORKER_THREAD_COUNT);
+
   }
+
   @Invalidate
   def destroy() {
     running.set(false)

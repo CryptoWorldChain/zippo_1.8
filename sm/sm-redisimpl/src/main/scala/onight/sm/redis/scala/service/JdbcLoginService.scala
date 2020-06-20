@@ -37,6 +37,7 @@ import onight.tfw.ntrans.api.ActorService
 import onight.tfw.proxy.IActor
 import onight.tfw.otransio.api.session.CMDService
 import org.apache.felix.ipojo.configuration.Instance
+import java.math.BigDecimal
 
 @NActorProvider
 @Instantiate
@@ -83,7 +84,11 @@ object JdbcLoginService extends OLog with PBUtils with LService[PBSSO] {
           remainmap.map(kv => {
             if (!StringUtils.equalsIgnoreCase(kv._1, "PASSWORD") &&
               !StringUtils.equalsIgnoreCase(kv._1, "TRADE_PASSWORD")) {
-              ret.putKvs(kv._1,kv._2.toString())
+              if(kv._2.isInstanceOf[BigDecimal]){
+                ret.putKvs(kv._1,kv._2.asInstanceOf[BigDecimal].toPlainString())
+              }else{
+                ret.putKvs(kv._1,kv._2.toString())
+              }
             }
           })
           ret.setRetcode(RetCode.SUCCESS).setLoginId (loginId)
@@ -95,7 +100,7 @@ object JdbcLoginService extends OLog with PBUtils with LService[PBSSO] {
           //                a + b._1 + "=" + "******" + ";"
           //              else
           //                a + b._1 + "=" + b._2 + ";"))
-          val session = LoginResIDSession(smid, ret.getUserId, loginId, pbo.getPassword, pbo.getResId, null);
+          val session = LoginResIDSession(smid, ret.getUserId, loginId, pbo.getPassword, pbo.getResId, ret.getKvs);
 
           SessionManager.watchSMID(session)
           pack.putHeader(ExtHeader.SESSIONID, smid);

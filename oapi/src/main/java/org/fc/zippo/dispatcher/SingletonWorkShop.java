@@ -31,8 +31,8 @@ public abstract class SingletonWorkShop<T> implements Runnable {
 	}
 
 	protected int maxQueueSize = prop.get("org.zippo.ddc.singleton." + getName() + ".queue.size", 1000);
-	protected int pollMaxWaitMS = prop.get("org.zippo.ddc.singleton." + getName() + "poll.max.wait.ms", 60 * 1000);
-	protected int pollMinWaitMS = prop.get("org.zippo.ddc.singleton." + getName() + "poll.min.wait.ms", 50);
+	protected int pollMaxWaitMS = prop.get("org.zippo.ddc.singleton." + getName() + ".poll.max.wait.ms", 60 * 1000);
+	protected int pollMinWaitMS = prop.get("org.zippo.ddc.singleton." + getName() + ".poll.min.wait.ms", 50);
 	protected int batchSize = prop.get("org.zippo.ddc.singleton" + getName() + ".batch.size", 100);
 
 	protected AtomicLong counter = new AtomicLong(0);
@@ -76,7 +76,12 @@ public abstract class SingletonWorkShop<T> implements Runnable {
 					procList.add(t);
 					counter.decrementAndGet();
 					if (i < batchSize - 1) {
-						t = queue.poll(getLoopMinWaitMS(), TimeUnit.MILLISECONDS);
+						if (pollMinWaitMS>0)
+						{
+							t = queue.poll(getLoopMinWaitMS(), TimeUnit.MILLISECONDS);
+						}else {
+							t = queue.poll();
+						}
 					}
 				}
 				if (procList.size() > 0) {
