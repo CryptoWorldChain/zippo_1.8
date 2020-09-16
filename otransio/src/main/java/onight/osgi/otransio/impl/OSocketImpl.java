@@ -268,6 +268,7 @@ public class OSocketImpl implements Serializable, ISocket {
 		}
 		if (ms != null) {
 			if (ms instanceof LocalModuleSession) {
+				log.debug("route to local:"+pack.getModuleAndCMD()+",from="+conn);
 				localProcessor.route2Local(pack, handler, ms);
 			} else {
 				RemoteModuleSession rms = (RemoteModuleSession) ms;

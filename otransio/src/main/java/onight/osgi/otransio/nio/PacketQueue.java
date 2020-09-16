@@ -17,6 +17,7 @@ import onight.osgi.otransio.ck.CKConnPool;
 import onight.osgi.otransio.util.PacketTuplePool;
 import onight.osgi.otransio.util.PacketWriterPool;
 import onight.tfw.async.CompleteHandler;
+import onight.tfw.mservice.NodeHelper;
 import onight.tfw.otransio.api.beans.FramePacket;
 import onight.tfw.outils.conf.PropHelper;
 import onight.tfw.outils.pool.ReusefulLoopPool;
@@ -49,6 +50,9 @@ public class PacketQueue implements Runnable {
 	ReusefulLoopPool<Connection> greenPool = new ReusefulLoopPool<>();
 	ReusefulLoopPool<Connection> pioPool = new ReusefulLoopPool<>();
 
+	public static String PACK_ID_PREFIX = NodeHelper.getCurrNodeListenOutAddr() + "_"
+			+ NodeHelper.getCurrNodeListenOutPort();
+
 	public PacketQueue(CKConnPool ckpool, int max_packet_buffer, Executor subexec, PacketTuplePool packPool,
 			PacketWriterPool writerPool, ConcurrentHashMap<String, PacketTuple> check_Map, int maxResendBufferSize) {
 		this.ckpool = ckpool;
@@ -64,7 +68,8 @@ public class PacketQueue implements Runnable {
 
 	public void ensurePacketID(FramePacket fp, PacketTuple pt) {
 		if (fp.getExtProp(PACK_RESEND_ID) == null) {
-			String packid = System.currentTimeMillis() % 100000000 + "" + packCounter.incrementAndGet();
+			String packid = PACK_ID_PREFIX + System.currentTimeMillis() % 100000000 + ""
+					+ packCounter.incrementAndGet();
 			fp.putHeader(PACK_RESEND_ID, packid);
 			if (check_Map.size() < maxResendBufferSize) {
 				check_Map.put(packid, pt);
@@ -136,16 +141,16 @@ public class PacketQueue implements Runnable {
 		if (isStop) {
 			return;
 		}
-//		int cc = 0;
-//		PropHelper props = new PropHelper(null);
-//		while (ckpool.size() < ckpool.getCore() && !isStop
-//				&& cc < props.get("org.zippo.otransio.reconnect.try.times", 10)) {
-//			conn = ckpool.ensureConnection();
-//			if (conn != null && conn.isOpen()) {
-//				ckpool.retobj(conn);
-//			}
-//			cc++;
-//		}
+		// int cc = 0;
+		// PropHelper props = new PropHelper(null);
+		// while (ckpool.size() < ckpool.getCore() && !isStop
+		// && cc < props.get("org.zippo.otransio.reconnect.try.times", 10)) {
+		// conn = ckpool.ensureConnection();
+		// if (conn != null && conn.isOpen()) {
+		// ckpool.retobj(conn);
+		// }
+		// cc++;
+		// }
 		for (int i = 0; i < ckpool.getCore() / 4 && !isStop; i++) {
 			conn = ckpool.borrow();
 			if (conn != null && conn.isOpen()) {
@@ -231,7 +236,7 @@ public class PacketQueue implements Runnable {
 			PacketTuple fp = queue.poll();
 			if (fp != null) {
 				Connection conn = pool.borrow();
-				ReusefulLoopPool<Connection>  retPut_ckpool = pool;
+				ReusefulLoopPool<Connection> retPut_ckpool = pool;
 				if (conn == null || !conn.isOpen()) {
 					if (conn != null) {
 						// log.error("TTT-remove not open connection:pool=" +
@@ -248,7 +253,7 @@ public class PacketQueue implements Runnable {
 					if (conn != null && conn.isOpen()) {
 						if (pool.size() >= ckpool.getCore() / 4) {
 							retPut_ckpool = ckpool;
-						}else {
+						} else {
 							retPut_ckpool.getAllObjs().put(conn, conn);
 						}
 					}
